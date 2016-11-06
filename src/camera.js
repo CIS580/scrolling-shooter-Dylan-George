@@ -40,7 +40,7 @@ Camera.prototype.onScreen = function(target) {
   return (
      target.x > this.x &&
      target.x < this.x + this.width &&
-     target.y > this.y &&
+     target.y > this.y -32 &&
      target.y < this.y + this.height
    );
 }

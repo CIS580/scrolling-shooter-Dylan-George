@@ -11,12 +11,23 @@ const BulletPool = require('./bullet_pool');
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
+
+var backgrounds = [
+	new Image(),
+	new Image(),
+	new Image()
+];
+backgrounds[0].src = 'assets/space/stars.png';
+backgrounds[1].src = 'assets/space/big_stars.png';
+backgrounds[2].src = 'assets/space/planets.png';
+
 var input = {
   up: false,
   down: false,
   left: false,
   right: false
 }
+var firing = false;
 var camera = new Camera(canvas);
 var bullets = new BulletPool(10);
 var missiles = [];
@@ -48,6 +59,10 @@ window.onkeydown = function(event) {
       input.right = true;
       event.preventDefault();
       break;
+	case " ":
+		firing = true;
+		event.preventDefault();
+		break;
   }
 }
 
@@ -77,6 +92,10 @@ window.onkeyup = function(event) {
       input.right = false;
       event.preventDefault();
       break;
+	case " ":
+		firing = false;
+		event.preventDefault();
+	break;
   }
 }
 
@@ -102,7 +121,7 @@ masterLoop(performance.now());
 function update(elapsedTime) {
 
   // update the player
-  player.update(elapsedTime, input);
+  player.update(elapsedTime, input, firing);
 
   // update the camera
   camera.update(player.position);
@@ -137,8 +156,25 @@ function render(elapsedTime, ctx) {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, 1024, 786);
 
-  // TODO: Render background
+	//Render the background
+	// The background scrolls at 2% of the foreground speed  
+	ctx.save();
+	ctx.translate(-camera.x * 0.2, 0);
+	ctx.drawImage(backgrounds[0], 0, 0);
+	ctx.restore();
 
+	// The midground scrolls at 60% of the foreground speed
+	ctx.save();
+	ctx.translate(-camera.x * 0.6, 0);
+	ctx.drawImage(backgrounds[1], 0, 0);
+	ctx.restore();
+
+	// The foreground scrolls in sync with the camera
+	ctx.save();
+	ctx.translate(-camera.x, 0);
+	ctx.drawImage(backgrounds[2], 0, 0);
+	ctx.restore();
+	
   // Transform the coordinate system using
   // the camera position BEFORE rendering
   // objects in the world - that way they
@@ -171,7 +207,7 @@ function renderWorld(elapsedTime, ctx) {
     });
 
     // Render the player
-    player.render(elapsedTime, ctx);
+    player.render(elapsedTime, ctx, input);
 }
 
 /**

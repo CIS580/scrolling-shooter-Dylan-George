@@ -27,8 +27,21 @@ function Game(screen, updateFunction, renderFunction) {
   // Start the game loop
   this.oldTime = performance.now();
   this.paused = false;
-}
+  
 
+}
+var tilemap = require('./tilemap.js');
+Game.prototype.loadLevel = function(level)
+{
+	var tilemapData = require('../assets/tilemaps/space_level.json');
+
+	// Load the tilemap
+	this.tilemap.load(tilemapData, {
+		onload: function() {
+		  tilemap.render(this.frontCtx);
+		}
+	});
+}
 /**
  * @function pause
  * Pause or unpause the game

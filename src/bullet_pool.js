@@ -17,9 +17,11 @@ module.exports = exports = BulletPool;
  * @param {uint} size the maximum number of bullets to exits concurrently
  */
 function BulletPool(maxSize) {
-  this.pool = new Float32Array(4 * maxSize);
-  this.end = 0;
-  this.max = maxSize;
+	this.pool = new Float32Array(4 * maxSize);
+	this.end = 0;
+	this.max = maxSize;
+	this.img = new Image();
+	this.img.src = 'assets/sprites/ship_sprites.png';
 }
 
 /**
@@ -85,13 +87,10 @@ BulletPool.prototype.update = function(elapsedTime, callback) {
  */
 BulletPool.prototype.render = function(elapsedTime, ctx) {
   // Render the bullets as a single path
-  ctx.save();
-  ctx.beginPath();
-  ctx.fillStyle = "black";
+  //ctx.save();
   for(var i = 0; i < this.end; i++) {
-    ctx.moveTo(this.pool[4*i], this.pool[4*i+1]);
-    ctx.arc(this.pool[4*i], this.pool[4*i+1], 2, 0, 2*Math.PI);
+    //ctx.moveTo(this.pool[4*i], this.pool[4*i+1]);
+	ctx.drawImage(this.img, 0, 32, 32, 32, this.pool[4*i], this.pool[4*i+1], 32, 32);
   }
-  ctx.fill();
-  ctx.restore();
+  //ctx.restore();
 }
