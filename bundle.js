@@ -305,6 +305,7 @@ function update(elapsedTime) {
 				|| player.position.y > hit.enemy.position.y + hit.enemy.height))
 			{
 				player.damage();
+				if(player.life == 0) state = "lost";
 			}
 		}
 	});
@@ -319,6 +320,7 @@ function update(elapsedTime) {
 		{
 			enemyBullets.remove(hit.bulletIndex);
 			player.damage();
+			if(player.life == 0) state = "lost";
 		}
 	});
 	}
@@ -408,7 +410,7 @@ function renderWorld(elapsedTime, ctx) {
   */
 function renderGUI(elapsedTime, ctx) {
   // TODO: Render the GUI
-  
+
   //Health bar  
   ctx.fillStyle = "red";
   ctx.fillRect(10, 10, 250, 50);
@@ -427,6 +429,14 @@ function renderGUI(elapsedTime, ctx) {
 	ctx.font = "40px Arial"; 
 	ctx.fillText("You beat the level!", canvas.width/3 + 5, canvas.height/3 + 60);
 	ctx.fillText("Level Score: 4550", canvas.width/5 + 150, canvas.height/3+140);
+  }
+  else if(state == "lost")
+  {
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+	ctx.fillRect(0, canvas.height/4, canvas.width, 320);
+	ctx.fillStyle = 'black';
+	ctx.font = "40px Arial"; 
+	ctx.fillText("You lost :/ refresh your browser (No reset yet)", 100, canvas.height/3 + 60);
   }
 }
 
