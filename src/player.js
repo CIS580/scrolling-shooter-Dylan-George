@@ -35,7 +35,7 @@ function Player(bullets, missiles, position) {
   this.bulletTimer = this.bulletDelay;
   this.height = 40;
   this.width = 40;
-  this.life = 3;
+  this.life = 5;
   this.particles = new Particles(20);
   this.particleCount = 0;
  

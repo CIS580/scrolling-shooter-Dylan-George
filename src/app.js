@@ -35,9 +35,19 @@ var bullets = new BulletPool(50);
 var enemyBullets = new BulletPool(100);
 var missiles = [];
 var enemies = [];
+var state = "playing";
 var player = new Player(bullets, missiles, {x: camera.x, y: camera.y});
-var sphere = new Enemy(enemyBullets, {x: 0, y: camera.y}, "sphere");
-enemies.push(sphere);
+var enemiesLeft = 20;
+for(var i = 0; i < 20; i++)
+{
+	var type = Math.floor(Math.random()*2);
+	var x = Math.floor((Math.random()*600)+100);
+	var y = Math.floor(Math.random()*(4096-canvas.height));
+	if(type == 0) var enemy = new Enemy(enemyBullets, {x: x, y: y}, "sphere");
+	else if(type == 1) var enemy = new Enemy(enemyBullets, {x:x, y:y}, "triangle");
+	enemies.push(enemy);
+}
+
 /**
  * @function onkeydown
  * Handles keydown events
@@ -124,6 +134,10 @@ masterLoop(performance.now());
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
+	if(state == "playing")
+	{
+	if(player.state == "alive")
+	{var dead = 0;
 	// update the player
 	player.update(elapsedTime, input, firing, camera.y);
 
@@ -151,6 +165,8 @@ function update(elapsedTime) {
   	//Update the enemies
 	enemies.forEach(function(enemy, i){
 		enemy.update(elapsedTime, camera.y, player.position);
+		if(enemy.state == "dead") dead++;
+		if(dead == 20) state = "won";
 	});
   // Remove missiles that have gone off-screen
 	markedForRemoval.forEach(function(index){
@@ -169,14 +185,13 @@ function update(elapsedTime) {
 					var by = bullets.pool[6*i+1];
 					if(Math.abs(by - enemy.position.y) < enemy.height)
 					{
-						potentialEnemyHits.push({enemy: enemy, bulletIndex: i});
+						if(enemy.state == "alive") potentialEnemyHits.push({enemy: enemy, bulletIndex: i});
 					}			
 				}
-				//console.log(enemy.position.y+enemy.height < player.position.y + player.height/2);
-				//Because the player sprite is scaled up, its position its not in the upper left corner
+
 				if(Math.abs(enemy.position.y-player.position.y) < enemy.height)
 				{
-					potentialEnemyHits.push({enemy: enemy, bulletIndex: -1});
+					if(enemy.state == "alive") potentialEnemyHits.push({enemy: enemy, bulletIndex: -1});
 				}
 			}
 		});
@@ -190,32 +205,52 @@ function update(elapsedTime) {
 
 		if(Math.abs(by - player.position.y) < player.height)
 		{
-			potentialPlayerHits.push(player);
+			if(player.state == "alive") potentialPlayerHits.push({player: player, bulletIndex: i});
 		}				
 	}
 	
 	potentialEnemyHits.forEach(function(hit)
-	{
+	{		
+
 		if(hit.bulletIndex != -1)
-		{
+		{		
 			var bx = bullets.pool[6*hit.bulletIndex];
 			var by = bullets.pool[6*hit.bulletIndex+1];
 			var br = bullets.pool[6*hit.bulletIndex+5];
-			
+
 			if(!(bx+br*2 < hit.enemy.position.x || bx > hit.enemy.position.x + hit.enemy.width
 				|| by+br*2 < hit.enemy.position.y || by > hit.enemy.position.y + hit.enemy.height))
 			{
 				bullets.remove(hit.bulletIndex);
-				//Damage the enemy
+				hit.enemy.damage();
 			}
 		}
 		else
 		{
 			if(!(player.position.x + player.width < hit.enemy.position.x
 				|| player.position.x > hit.enemy.position.x + hit.enemy.width
-				|| player.position.y+player.height < hit.
+				|| player.position.y+player.height < hit.enemy.position.y
+				|| player.position.y > hit.enemy.position.y + hit.enemy.height))
+			{
+				player.damage();
+			}
 		}
 	});
+	
+	potentialPlayerHits.forEach(function(hit)
+	{
+		var bx = enemyBullets.pool[6*hit.bulletIndex];
+		var by = enemyBullets.pool[6*hit.bulletIndex+1];
+		var br = enemyBullets.pool[6*hit.bulletIndex+5];
+		if(!(bx+br*2 < hit.player.position.x || bx > hit.player.position.x + hit.player.width
+				|| by+br*2 < hit.player.position.y || by > hit.player.position.y + hit.player.height))
+		{
+			enemyBullets.remove(hit.bulletIndex);
+			player.damage();
+		}
+	});
+	}
+	}
 }
 
 /**
@@ -301,4 +336,24 @@ function renderWorld(elapsedTime, ctx) {
   */
 function renderGUI(elapsedTime, ctx) {
   // TODO: Render the GUI
+  
+  //Health bar  
+  ctx.fillStyle = "red";
+  ctx.fillRect(10, 10, 250, 50);
+  ctx.strokeStyle = "dimgrey";
+  ctx.lineWidth = 4;
+  ctx.fillStyle = "lightgreen";
+  ctx.fillRect(10, 10, 50*player.life, 50);
+
+  ctx.strokeRect(10, 10, 250, 50);
+  
+  if(state == "won")
+  {
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+	ctx.fillRect(0, canvas.height/4, canvas.width, 320);
+	ctx.fillStyle = 'black';
+	ctx.font = "40px Arial"; 
+	ctx.fillText("You beat the level!", canvas.width/3 + 5, canvas.height/3 + 60);
+	ctx.fillText("Level Score: 4550", canvas.width/5 + 150, canvas.height/3+140);
+  }
 }

@@ -107,12 +107,13 @@ var bullets = new BulletPool(50);
 var enemyBullets = new BulletPool(100);
 var missiles = [];
 var enemies = [];
+var state = "playing";
 var player = new Player(bullets, missiles, {x: camera.x, y: camera.y});
 var enemiesLeft = 20;
 for(var i = 0; i < 20; i++)
 {
-	var type = Math.floor(Math.random()*1);
-	var x = Math.floor(Math.random()*canvas.width-100);
+	var type = Math.floor(Math.random()*2);
+	var x = Math.floor((Math.random()*600)+100);
 	var y = Math.floor(Math.random()*(4096-canvas.height));
 	if(type == 0) var enemy = new Enemy(enemyBullets, {x: x, y: y}, "sphere");
 	else if(type == 1) var enemy = new Enemy(enemyBullets, {x:x, y:y}, "triangle");
@@ -205,9 +206,10 @@ masterLoop(performance.now());
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
-	if(player.state == "alive")
+	if(state == "playing")
 	{
-	//if(enemiesLeft <= 0)
+	if(player.state == "alive")
+	{var dead = 0;
 	// update the player
 	player.update(elapsedTime, input, firing, camera.y);
 
@@ -235,6 +237,8 @@ function update(elapsedTime) {
   	//Update the enemies
 	enemies.forEach(function(enemy, i){
 		enemy.update(elapsedTime, camera.y, player.position);
+		if(enemy.state == "dead") dead++;
+		if(dead == 20) state = "won";
 	});
   // Remove missiles that have gone off-screen
 	markedForRemoval.forEach(function(index){
@@ -317,6 +321,7 @@ function update(elapsedTime) {
 			player.damage();
 		}
 	});
+	}
 	}
 }
 
@@ -406,13 +411,23 @@ function renderGUI(elapsedTime, ctx) {
   
   //Health bar  
   ctx.fillStyle = "red";
-  ctx.fillRect(10, 10, 150, 50);
+  ctx.fillRect(10, 10, 250, 50);
   ctx.strokeStyle = "dimgrey";
   ctx.lineWidth = 4;
   ctx.fillStyle = "lightgreen";
   ctx.fillRect(10, 10, 50*player.life, 50);
 
-  ctx.strokeRect(10, 10, 150, 50);
+  ctx.strokeRect(10, 10, 250, 50);
+  
+  if(state == "won")
+  {
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+	ctx.fillRect(0, canvas.height/4, canvas.width, 320);
+	ctx.fillStyle = 'black';
+	ctx.font = "40px Arial"; 
+	ctx.fillText("You beat the level!", canvas.width/3 + 5, canvas.height/3 + 60);
+	ctx.fillText("Level Score: 4550", canvas.width/5 + 150, canvas.height/3+140);
+  }
 }
 
 },{"./bullet_pool":3,"./camera":4,"./enemies":5,"./game":6,"./player":9,"./vector":11}],3:[function(require,module,exports){
@@ -630,8 +645,6 @@ function Enemy(bullets, position, type) {
   this.frame = 0;
   this.timer = 0;
   this.name = type;
-  this.attackDelay = 500;
-  this.attackTimer = this.attackDelay;
   this.particles = new Particles(20);
   this.particleCount = 0;
   this.state = "alive";
@@ -639,14 +652,29 @@ function Enemy(bullets, position, type) {
   {
 	this.width = 100;
 	this.height = 100;
+	this.size = 128;
 	this.radius = 25;
 	this.life = 10;
+	this.bulletFrame = {x: 0, y: 512, width: 64, height: 64};
+	this.shotPosition = {x: this.position.x + 32, y: this.position.y + 40};
+	this.shotRadius = 9;
+	this.attackDelay = 500;
+	this.attackTimer = this.attackDelay;
   }
   else if(type == "triangle")
   {
-	this.width = 64;
-	this.height = 64;
-	this.radius = 25
+	this.width = 40;
+	this.height = 40;
+	this.radius = 25;
+	this.life = 5;
+	this.size = 64;
+	this.bulletFrame = {x: 0, y: 192, width: 64, height: 64};
+	this.shotPosition = {x: this.position.x + 32, y: this.position.y + 40};
+	this.shotRadius = 9;
+	this.speed = 5;
+	this.direction = "left";
+	this.attackDelay = 1000;
+	this.attackTimer = this.attackDelay;
   }
 }
 
@@ -662,8 +690,8 @@ Enemy.prototype.update = function(elapsedTime, cameraY, player) {
 	{
 		if(this.particleCount < 20)
 		{
-			var randX = Math.floor((Math.random() * 128));
-			var randY = Math.floor((Math.random() * 128));
+			var randX = Math.floor((Math.random() * this.size));
+			var randY = Math.floor((Math.random() * this.size));
 			this.particles.emit({x: this.position.x + randX, y: this.position.y + randY});
 			this.particleCount++;
 		}
@@ -675,17 +703,42 @@ Enemy.prototype.update = function(elapsedTime, cameraY, player) {
 		this.attackTimer+=elapsedTime;
 		if(this.attackTimer >= this.attackDelay)
 		{
+			if(this.name == "sphere")
+			{
+				this.timer+=elapsedTime;
+				if(this.timer >= 50)
+				{
+					this.timer = 0;
+
+					if(this.frame < 4) this.frame++;
+					else
+					{
+						this.attackTimer = 0;
+						this.fireBullet(player);
+					}
+				}
+			}
+			else if(this.name == "triangle")
+			{
+				this.fireBullet({x:0, y:this.shotPosition.y + 10000});
+				this.attackTimer = 0;
+			}
+		}
+		
+		if(this.name == "triangle")
+		{
 			this.timer+=elapsedTime;
+			if(this.position.x < 0) this.direction = "right"; 
+			else if(this.position.x > 765) this.direction = "left"; 
+			if(this.direction == "right") this.position.x +=1;
+			else if(this.direction == "left")this.position.x-=1;
+			this.shotPosition.x = this.position.x;
 			if(this.timer >= 50)
 			{
 				this.timer = 0;
 
-				if(this.frame < 4) this.frame++;
-				else
-				{
-					this.attackTimer = 0;
-					this.fireBullet(player);
-				}
+				if(this.frame < 1) this.frame++;
+				else this.frame = 0;
 			}
 		}
 	}
@@ -699,8 +752,12 @@ Enemy.prototype.update = function(elapsedTime, cameraY, player) {
  * @param {CanvasRenderingContext2D} ctx
  */
 Enemy.prototype.render = function(elapsedTime, ctx) {
-  if(this.life>0) ctx.drawImage(this.img, 128*this.frame, 384, 128, 128, this.position.x, this.position.y, 128, 128);
-  this.particles.render(elapsedTime, ctx, {r:142, g: 142, b: 142});
+	if(this.life>0)
+	{
+		if(this.name == "sphere") ctx.drawImage(this.img, 128*this.frame, 384, 128, 128, this.position.x, this.position.y, 128, 128);
+		else if(this.name == "triangle") ctx.drawImage(this.img, 64*this.frame, 128, 64, 64, this.position.x, this.position.y, 64, 64);
+	}
+	this.particles.render(elapsedTime, ctx, {r:142, g: 142, b: 142});
 }
 
 /**
@@ -711,12 +768,11 @@ Enemy.prototype.render = function(elapsedTime, ctx) {
 Enemy.prototype.fireBullet = function(player) {
 	this.frame = 0;
     var direction = Vector.subtract(
-		player,
-		{x: this.position.x + 32, y: this.position.y + 40}
+		player, 
+		this.shotPosition
     );
 	var velocity = Vector.scale(Vector.normalize(direction), BULLET_SPEED);
-	var frame = {x: 0, y: 512, width: 64, height: 64};
-	this.bullets.add({x: this.position.x + 32, y: this.position.y + 40}, velocity, frame, 9);
+	this.bullets.add(this.shotPosition, velocity, this.bulletFrame, this.shotRadius);
 }
 
 Enemy.prototype.damage = function()
@@ -1034,7 +1090,7 @@ function Player(bullets, missiles, position) {
   this.bulletTimer = this.bulletDelay;
   this.height = 40;
   this.width = 40;
-  this.life = 3;
+  this.life = 5;
   this.particles = new Particles(20);
   this.particleCount = 0;
  
