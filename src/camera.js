@@ -14,9 +14,9 @@ module.exports = exports = Camera;
  * Creates a camera
  * @param {Rect} screen the bounds of the screen
  */
-function Camera(screen) {
+function Camera(screen, level) {
   this.x = 0;
-  this.y = 0;
+  this.y = level-screen.height;
   this.width = screen.width;
   this.height = screen.height;
 }
@@ -28,6 +28,7 @@ function Camera(screen) {
  */
 Camera.prototype.update = function(target) {
   // TODO: Align camera with player
+  if(this.y>0) this.y--;
 }
 
 /**
@@ -38,7 +39,7 @@ Camera.prototype.update = function(target) {
  */
 Camera.prototype.onScreen = function(target) {
   return (
-     target.x > this.x &&
+     target.x > this.x -32 &&
      target.x < this.x + this.width &&
      target.y > this.y -32 &&
      target.y < this.y + this.height
