@@ -3,6 +3,7 @@
 /* Classes and Libraries */
 const Vector = require('./vector');
 const Missile = require('./missile');
+const Particles = require('./particles');
 
 /* Constants */ 
 const BULLET_SPEED = 10;
@@ -30,10 +31,21 @@ function Enemy(bullets, position, type) {
   this.name = type;
   this.attackDelay = 500;
   this.attackTimer = this.attackDelay;
+  this.particles = new Particles(20);
+  this.particleCount = 0;
+  this.state = "alive";
   if(type == "sphere") 
   {
 	this.width = 100;
 	this.height = 100;
+	this.radius = 25;
+	this.life = 10;
+  }
+  else if(type == "triangle")
+  {
+	this.width = 64;
+	this.height = 64;
+	this.radius = 25
   }
 }
 
@@ -45,28 +57,37 @@ function Enemy(bullets, position, type) {
  * boolean properties: up, left, right, down
  */
 Enemy.prototype.update = function(elapsedTime, cameraY, player) {
-	this.attackTimer+=elapsedTime;
-	if(this.attackTimer >= this.attackDelay)
+	if(this.state == "dying")
 	{
-		this.timer+=elapsedTime;
-		if(this.timer >= 50)
+		if(this.particleCount < 20)
 		{
-			this.timer = 0;
-
-			if(this.frame < 4) this.frame++;
-			else
+			var randX = Math.floor((Math.random() * 128));
+			var randY = Math.floor((Math.random() * 128));
+			this.particles.emit({x: this.position.x + randX, y: this.position.y + randY});
+			this.particleCount++;
+		}
+		else this.state = "dead";
+		this.particles.update(elapsedTime);
+	}
+	else if(this.state != "dead")
+	{
+		this.attackTimer+=elapsedTime;
+		if(this.attackTimer >= this.attackDelay)
+		{
+			this.timer+=elapsedTime;
+			if(this.timer >= 50)
 			{
-				this.attackTimer = 0;
-				this.fireBullet(player);
+				this.timer = 0;
+
+				if(this.frame < 4) this.frame++;
+				else
+				{
+					this.attackTimer = 0;
+					this.fireBullet(player);
+				}
 			}
 		}
 	}
-  
-  // determine Enemy angle
-  this.angle = 0;
-  if(this.velocity.x < 0) this.angle = -1;
-  if(this.velocity.x > 0) this.angle = 1;
-  
   this.y+=SCROLL_SPEED;
 }
 
@@ -76,8 +97,9 @@ Enemy.prototype.update = function(elapsedTime, cameraY, player) {
  * @param {DOMHighResTimeStamp} elapsedTime
  * @param {CanvasRenderingContext2D} ctx
  */
-Enemy.prototype.render = function(elapasedTime, ctx) {
-  ctx.drawImage(this.img, 128*this.frame, 384, 128, 128, this.position.x, this.position.y, 128, 128);
+Enemy.prototype.render = function(elapsedTime, ctx) {
+  if(this.life>0) ctx.drawImage(this.img, 128*this.frame, 384, 128, 128, this.position.x, this.position.y, 128, 128);
+  this.particles.render(elapsedTime, ctx, {r:142, g: 142, b: 142});
 }
 
 /**
@@ -93,7 +115,16 @@ Enemy.prototype.fireBullet = function(player) {
     );
 	var velocity = Vector.scale(Vector.normalize(direction), BULLET_SPEED);
 	var frame = {x: 0, y: 512, width: 64, height: 64};
-	this.bullets.add({x: this.position.x + 32, y: this.position.y + 40}, velocity, frame, 8);
+	this.bullets.add({x: this.position.x + 32, y: this.position.y + 40}, velocity, frame, 9);
+}
+
+Enemy.prototype.damage = function()
+{
+	this.life--;
+	if(this.life <= 0)
+	{
+		this.state = "dying";
+	}
 }
 
 /**

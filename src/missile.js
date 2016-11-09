@@ -2,7 +2,7 @@
 
 /* Classes and Libraries */
 const Vector = require('./vector');
-const SmokeParticles = require('./smoke_particles');
+const Particles = require('./particles');
 
 /* Constants */
 const MISSILE_SPEED = 8;
@@ -25,7 +25,7 @@ function Missile(position, target) {
   this.angle = 0;
   this.img = new Image()
   this.img.src = 'assets/helicopter.png';
-  this.smokeParticles = new SmokeParticles(400);
+  this.smokeParticles = new Particles(400);
 }
 
 /**

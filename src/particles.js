@@ -1,18 +1,18 @@
 "use strict";
 
 /**
- * @module SmokeParticles
+ * @module Particles
  * A class for managing a particle engine that
  * emulates a smoke trail
  */
-module.exports = exports = SmokeParticles;
+module.exports = exports = Particles;
 
 /**
- * @constructor SmokeParticles
- * Creates a SmokeParticles engine of the specified size
+ * @constructor Particles
+ * Creates a Particles engine of the specified size
  * @param {uint} size the maximum number of particles to exist concurrently
  */
-function SmokeParticles(maxSize) {
+function Particles(maxSize) {
   this.pool = new Float32Array(3 * maxSize);
   this.start = 0;
   this.end = 0;
@@ -25,7 +25,7 @@ function SmokeParticles(maxSize) {
  * Adds a new particle at the given position
  * @param {Vector} position
 */
-SmokeParticles.prototype.emit = function(position) {
+Particles.prototype.emit = function(position) {
   if(this.end != this.max) {
     this.pool[3*this.end] = position.x;
     this.pool[3*this.end+1] = position.y;
@@ -44,7 +44,7 @@ SmokeParticles.prototype.emit = function(position) {
  * Updates the particles
  * @param {DOMHighResTimeStamp} elapsedTime
  */
-SmokeParticles.prototype.update = function(elapsedTime) {
+Particles.prototype.update = function(elapsedTime) {
   function updateParticle(i) {
     this.pool[3*i+2] += elapsedTime;
     if(this.pool[3*i+2] > 2000) this.start = i;
@@ -70,7 +70,7 @@ SmokeParticles.prototype.update = function(elapsedTime) {
  * @param {DOMHighResTimeStamp} elapsedTime
  * @param {CanvasRenderingContext2D} ctx
  */
-SmokeParticles.prototype.render = function(elapsedTime, ctx) {
+Particles.prototype.render = function(elapsedTime, ctx, color) {
   function renderParticle(i){
     var alpha = 1 - (this.pool[3*i+2] / 1000);
     var radius = 0.1 * this.pool[3*i+2];
@@ -83,7 +83,8 @@ SmokeParticles.prototype.render = function(elapsedTime, ctx) {
       0,
       2*Math.PI
     );
-    ctx.fillStyle = 'rgba(160, 160, 160,' + alpha + ')';
+	
+    ctx.fillStyle = 'rgba('+ color.r +',' + color.g +', ' + color.b + ',' + alpha + ')';
     ctx.fill();
   }
 
